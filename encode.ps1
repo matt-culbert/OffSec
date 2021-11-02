@@ -94,7 +94,7 @@ if($Match.Success)
 {           
     $temp += $Match.Value  
 	$temp += 'D2'
-	"Assmelbed op-codes to be inserted",$temp
+	"Assemlbed op-codes to be inserted",$temp
 }
 
 # Clean up once we're done 
