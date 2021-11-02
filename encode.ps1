@@ -18,9 +18,9 @@ write-host "Original shellcode: 0x$printFriendly"
 # Iterate through shellcode bytes and encode them
 $encodedShellcode = $shellcode | % {
     $_ = $_ -bxor 0x55
-	$_ = $_ -bxor 0xFF
-	$_ = $_ -bxor 0x23
-	$_ = $_ -bxor 0x2E 
+    $_ = $_ -bxor 0xFF
+    $_ = $_ -bxor 0x23
+    $_ = $_ -bxor 0x2E 
     $_ = $_ + 0x1
     $_ = $_ -bxor 0x11
     Write-Output $_
@@ -58,9 +58,9 @@ section .text
          
         xor byte [rax], 0x11    ; 1. xor byte with 0x11
         dec byte [rax]          ; 2. decremenet byte by 1
-		xor byte [rax], 0x2E
-		xor byte [rax], 0x23 
-		xor byte [rax], 0xFF
+        xor byte [rax], 0x2E
+	xor byte [rax], 0x23 
+	xor byte [rax], 0xFF
         xor byte [rax], 0x55    ; 3. xor byte with 0x55
         
         inc rax                 
