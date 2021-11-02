@@ -93,7 +93,7 @@ $Match = $Regex.Match($nicelyFormatted)
 if($Match.Success)           
 {           
     $temp += $Match.Value  
-	$temp += 'D2'
+	$temp += $ShellCodeEndPoint
 	"Assemlbed op-codes to be inserted",$temp
 }
 
