@@ -87,7 +87,7 @@ Get-Content "C:\Users\matt\Desktop\decodeTemp" -Encoding Byte -ReadCount 16 | Fo
 }
 
 $nicelyFormatted.replace("`n"," ")
-$temp = 'EB' # 
+$temp = 'EB' # Make sure that EB is at the start of our sub string
 $Regex = [Regex]::new("(?<=EB)(.*)(?=$ShellCodeEndPoint)") # EB is our entry point, grab between it and the shell code exit
 $Match = $Regex.Match($nicelyFormatted)
 if($Match.Success)           
