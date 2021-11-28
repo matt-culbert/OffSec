@@ -1,17 +1,34 @@
-import asyncio
-import pathlib
+import socket
 import ssl
 import websockets
+import asyncio
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-#localhost_pem = pathlib.Path(__file__).with_name("/etc/nginx/certs/key.crt")
-ssl_context.load_verify_locations("/etc/nginx/certs/server.crt")
-SSLContext.load_cert_chain("/etc/nginx/certs/ca.crt", keyfile=None, password=None)
+# Server IP and Port details
+
+sslServerIP         = "192.168.202.135";
+sslServerPort       = 443;
+
+# Construction of an SSLContext
+
+sslSettings                     = ssl.SSLContext();
+sslSettings.verify_mode         = ssl.CERT_REQUIRED;
+
+# Loading of CA certificate.
+
+# With this CA certificate this client will validate certificate from the server
+
+sslSettings.load_verify_locations("/etc/nginx/certs/ca.crt")
+
+# Loading of client certificate
+
+sslSettings.load_cert_chain(certfile="/etc/nginx/certs/server.crt", keyfile="/etc/nginx/certs/server.key")
+
+# Create a stream based client socket
 
 async def hello():
-    uri = "wss://test.temp:443"
+    uri = "wss://192.168.202.135:443"
     async with websockets.connect(
-        uri, ssl=ssl_context
+        uri, ssl=sslSettings
     ) as websocket:
         name = input("What's your name? ")
 
