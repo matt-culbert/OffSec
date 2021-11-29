@@ -9,6 +9,7 @@ The idea is that beacons that reach out will provide a series of certs needed fo
 To compile client.go, run gccgo client.go -o client
 
 To generate certs:
+
 openssl req \
   -newkey rsa:4096 \
   -x509 \
