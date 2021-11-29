@@ -7,3 +7,47 @@ The idea is that beacons that reach out will provide a series of certs needed fo
 ![with-without-cert](https://user-images.githubusercontent.com/18468466/142713549-979c1b07-0e3f-480b-98a4-c7c6d816f513.png)
 
 To compile client.go, run gccgo client.go -o client
+
+To generate certs:
+openssl req \
+  -newkey rsa:4096 \
+  -x509 \
+  -keyout ca.key \
+  -out ca.crt \
+  -days 30 \
+  -nodes \
+  -subj "/CN=my_ca"
+
+openssl req \
+  -newkey rsa:4096 \
+  -keyout server.key \
+  -out server.csr \
+  -nodes \
+  -days 30 \
+  -subj "/CN=test.temp" 
+
+ openssl x509 \
+  -req \
+  -in server.csr \
+  -out server.crt \
+  -CA ca.crt \
+  -CAkey ca.key \
+  -CAcreateserial \
+  -days 30 
+
+openssl req \
+  -newkey rsa:4096 \
+  -keyout client.key \
+  -out client.csr \
+  -nodes \
+  -days 30 \
+  -subj "/CN=client" 
+
+openssl x509 \ 
+  -req \
+  -in client.csr \
+  -out client.crt \
+  -CA ca.crt \
+  -CAkey ca.key \
+  -CAcreateserial \
+  -days 30 
