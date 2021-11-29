@@ -21,7 +21,7 @@ sslSettings.load_verify_locations("/etc/nginx/certs/ca.crt")
 
 # Loading of client certificate
 
-sslSettings.load_cert_chain(certfile="/etc/nginx/certs/server.crt", keyfile="/etc/nginx/certs/server.key")
+sslSettings.load_cert_chain(certfile="/etc/nginx/certs/client.crt", keyfile="/etc/nginx/certs/client.key")
 
 # Create a stream based client socket
 
