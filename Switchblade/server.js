@@ -1,10 +1,20 @@
-console.log("Server started");
-var Msg = '';
-var WebSocketServer = require('ws').Server
-    , wss = new WebSocketServer({port: 8010});
-    wss.on('connection', function(ws) {
-        ws.on('message', function(message) {
-        console.log('Received from client: %s', message);
-        ws.send('Server received from client: ' + message);
-    });
- });
+class Clients{
+        constructor(){
+                this.clientList = {};
+                this.saveClient = this.saveClient.bind(this);
+        }
+        saveClient(username, client){
+                this.clientList[username] = client;
+        }
+}
+
+const WebSocket = require('ws')
+
+const clients = new Clients();
+const socket = new WebSocket.Server({ port: 8010});
+socket.on('connection', (client) => {
+        client.on('message', (msg) => {
+                const parsedMsg = JSON.parse(msg);
+                clients.saveClient(parsedMsg.username, client);
+        });
+});
