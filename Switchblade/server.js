@@ -1,4 +1,3 @@
-
 class Clients{
         constructor(){
                 this.clientList = {};
@@ -18,12 +17,17 @@ var WebSocketServer = require('ws').Server, wss = new WebSocketServer({port: 801
 
 const clients = new Clients();
 
+const beacons = [];
+
 const run = async() =>{
         wss.on('connection', (client) => {
                 client.on('message', (msg) => {
                         const parsedMsg = JSON.parse(msg);
                         clients.saveClient(parsedMsg.username, client);
+                        console.log(parsedMsg);
                         //clients.clientList[parsedMsg.username].send("'Check in'");
+                        //console.log(clients.clientList[parsedMsg.username]);
+                        beacons.push(parsedMsg);
                         readline.question('>',query =>{clients.clientList[parsedMsg.username].send(query);});
                 });
         });
