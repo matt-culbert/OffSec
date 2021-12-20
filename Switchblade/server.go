@@ -1,78 +1,68 @@
 package main
 
 import (
-        "context"
-        "crypto/tls"
-        "crypto/x509"
-        "fmt"
-        "io/ioutil"
-        "log"
-        "errors"
-        "net"
-		"strings"
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"errors"
+	"net"
 
-	"github.com/blackhat-go/bhg/ch-14/grpcapi"
-        "google.golang.org/grpc"
-        "google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 )
 
 type implantServer struct {
-        work, output, clientName chan *grpcapi.Command
+	work, output, clientName chan *grpcapi.Command
 }
 
 type adminServer struct {
-        work, output chan *grpcapi.Command // we're adding adminCommands here to this type. These will be server specific and don't get sent to beacons
+	work, output chan *grpcapi.Command
 }
 
 func NewImplantServer(work, output chan *grpcapi.Command) *implantServer {
-	// I think we should add the implant checkin here
-        s := new(implantServer)
-        s.work = work
-        s.output = output
-        return s
+	s := new(implantServer)
+	s.work = work
+	s.output = output
+	return s
 }
 
 func NewAdminServer(work, output chan *grpcapi.Command) *adminServer {
-        s := new(adminServer)
-        s.work = work
-        s.output = output
-
-        return s
+	s := new(adminServer)
+	s.work = work
+	s.output = output
+	return s
 }
 
 func (s *implantServer) FetchCommand(ctx context.Context, empty *grpcapi.Empty) (*grpcapi.Command, error) {
-        var cmd = new(grpcapi.Command)
-        select {
-        case cmd, ok := <-s.work:
-                if ok {
-                        return cmd, nil
-                }
-                return cmd, errors.New("channel closed")
-        default:
-                // No work
-                return cmd, nil
-        }
+	var cmd = new(grpcapi.Command)
+	select {
+	case cmd, ok := <-s.work:
+		if ok {
+			return cmd, nil
+		}
+		return cmd, errors.New("channel closed")
+	default:
+		// No work
+		return cmd, nil
+	}
 }
 
-func (s *implantServer) SendOutput(ctx context.Context, result *grpcapi.Command) (*grpcapi.Empty, error) { // using s in the func name to use the type defined above (s *implantServer)
-        s.output <- result
-        return &grpcapi.Empty{}, nil
+func (s *implantServer) SendOutput(ctx context.Context, result *grpcapi.Command) (*grpcapi.Empty, error) {
+	s.output <- result
+	return &grpcapi.Empty{}, nil
 }
 
 func (s *adminServer) RunCommand(ctx context.Context, cmd *grpcapi.Command) (*grpcapi.Command, error) {
-        var res *grpcapi.Command
-		// if cmd.startsWith('1') then s.work <- cmd else s.adminCommands <- cmd
-		// but right now we can't use a strings method because cmd isn't a string and we can't recast it....
-		// case listClients, case removeClient, etc...
-		// maybe we have to cast cmd to s.adminCommand and check it outside of here before giving it to s.work?
-		go func() { // this function takes in the command and sends it to the work queue, we should add some logic here to check if it's an admin command or an implant command
-			s.work <- cmd // this is the worker queue, we added adminCommands up top
-		}()
-		res = <-s.output
-		return res, nil
-
+	var res *grpcapi.Command
+	go func() {
+		s.work <- cmd
+	}()
+	res = <-s.output
+	return res, nil
 }
 
 func (s *implantServer) RegisterImplant(ctx context.Context, checkIn *grcpapi.Command) (*grpcapi.Empty, error) {
