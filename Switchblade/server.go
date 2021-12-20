@@ -9,6 +9,7 @@ import (
         "log"
         "errors"
         "net"
+		"strings"
 
 	"github.com/blackhat-go/bhg/ch-14/grpcapi"
         "google.golang.org/grpc"
@@ -88,19 +89,19 @@ func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 	if !ok {
 		return nil, fmt.Errorf("unable to cast server")
 	}
-	clientID, err := authenticateClient(ctx, s)
+	clientID, err := RegisterClient(ctx, s)
 	if err != nil {
 		return nil, err
 	}
-	ctx = context.WithValue(ctx, clientIDKey, clientID)
-	return handler(ctx, req)
+	ctx = context.WithValue(ctx, clientID, nil)
+	return handler(ctx, req), nil
 }
 
 func main() {
         var (
                 implantListener, adminListener net.Listener
                 err                            error
-                opts                           []grpc.ServerOption{grpc.unaryInterceptor(unaryInterceptor)}
+                opts                           []grpc.ServerOption
                 work, output				   chan *grpcapi.Command
         )
 
@@ -136,10 +137,10 @@ func main() {
                 log.Fatal(err)
         }
 
-        serverOption := grpc.Creds(credentials.NewTLS(tlsConfig))
+        serverOption := []grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsConfig)),grpc.unaryInterceptor(unaryInterceptor)}
 
         grpcImplantServer := grpc.NewServer(serverOption)
-        grpcAdminServer := grpc.NewServer(opts...)
+        grpcAdminServer := grpc.NewServer(opts)
         grpcapi.RegisterImplantServer(grpcImplantServer, implant)
         grpcapi.RegisterAdminServer(grpcAdminServer, admin)
 
